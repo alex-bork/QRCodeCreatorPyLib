@@ -1,5 +1,5 @@
 import unittest, os
-from qrcode_library import *
+from qrcode_creator import *
 
 
 class TestSMS(unittest.TestCase):
@@ -15,7 +15,7 @@ class TestSMS(unittest.TestCase):
         image = qr.create_image()
         image.save(file)
 
-        self.assertEquals(os.path.isfile(file), True)
+        self.assertTrue(os.path.isfile(file))
 
     def test_sms___string_value_error(self):
 

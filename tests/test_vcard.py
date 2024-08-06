@@ -1,5 +1,5 @@
 import unittest, os
-from qrcode_library import *
+from qrcode_creator import *
 
 
 class TestVCard(unittest.TestCase):
@@ -22,7 +22,7 @@ class TestVCard(unittest.TestCase):
         image = qr.create_image()
         image.save(file)
 
-        self.assertEquals(os.path.isfile(file), True)
+        self.assertTrue(os.path.isfile(file))
 
 
     def test_vcard___value_errors(self):

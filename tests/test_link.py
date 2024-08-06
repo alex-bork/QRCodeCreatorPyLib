@@ -1,5 +1,5 @@
 import unittest, os
-from qrcode_library import *
+from qrcode_creator import *
 
 
 class TestLink(unittest.TestCase):
@@ -10,12 +10,12 @@ class TestLink(unittest.TestCase):
 
         if os.path.isfile(file):
             os.remove(file)
-        
+
         qr = QRCodeLink('https://www.google.de')
         image = qr.create_image()
         image.save(file)
 
-        self.assertEquals(os.path.isfile(file), True)
+        self.assertTrue(os.path.isfile(file))
 
     def test_link___string_value_error(self):
 
