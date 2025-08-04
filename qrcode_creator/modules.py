@@ -2,10 +2,19 @@ import base64
 from dataclasses import dataclass
 from datetime import date
 import math
-from typing import Union
+from typing import Literal, Optional, Union
 import PIL
 import qrcode
 from qrcode import constants as qrconst
+from qrcode.image.styles.moduledrawers.pil import (
+    SquareModuleDrawer,
+    RoundedModuleDrawer,
+    GappedSquareModuleDrawer,
+    CircleModuleDrawer,
+    VerticalBarsDrawer,
+    HorizontalBarsDrawer,
+)
+from qrcode.image.styledpil import StyledPilImage
 from enum import Enum
 import os
 from PIL import Image
@@ -77,27 +86,45 @@ class QRCodeBase:
 
     def _set_icon(self, 
                   qr_image: any) -> None:
-            icon = Image.open(self._icon_path)
-            icon_width, icon_height = icon.size         
-            qr_width, qr_height = qr_image.size
-            qr_total_size = qr_width * qr_height - self._get_border_size(qr_height)
+        icon = Image.open(self._icon_path)
+        icon_width, icon_height = icon.size         
+        qr_width, qr_height = qr_image.size
+        qr_total_size = qr_width * qr_height - self._get_border_size(qr_height)
 
-            icon_target_size = self._MAX_ICON_SIZE_FACTOR * qr_total_size
-            icon_width_factor = icon_width // icon_height
+        icon_target_size = self._MAX_ICON_SIZE_FACTOR * qr_total_size
+        icon_width_factor = icon_width // icon_height
 
-            new_icon_width = math.sqrt(icon_target_size) * icon_width_factor
-            new_icon_hight = icon_target_size / new_icon_width
+        new_icon_width = math.sqrt(icon_target_size) * icon_width_factor
+        new_icon_hight = icon_target_size / new_icon_width
 
-            icon = icon.resize((int(new_icon_width), int(new_icon_hight)), PIL.Image.LANCZOS)
+        icon = icon.resize((int(new_icon_width), int(new_icon_hight)), PIL.Image.LANCZOS)
 
-            pos = (int((qr_width - new_icon_width) // 2), int((qr_height - new_icon_hight) // 2))
+        pos = (int((qr_width - new_icon_width) // 2), int((qr_height - new_icon_hight) // 2))
 
-            qr_image.paste(icon, pos)
-    
+        qr_image.paste(icon, pos)
+
+    def _get_module_drawer(self, qr_style):
+
+        if qr_style == "squared":
+            return SquareModuleDrawer()
+        elif qr_style == "gapped":
+            return GappedSquareModuleDrawer()
+        elif qr_style == "circle":
+            return CircleModuleDrawer()
+        elif qr_style == "rounded":
+            return RoundedModuleDrawer()
+        elif qr_style == "verticalbars":
+            return VerticalBarsDrawer()
+        elif qr_style == "horizontalbars":
+            return HorizontalBarsDrawer()
+        else:
+            raise ValueError(f"QR stype {qr_style} not supported.")
+
     def create_image(self, 
                      fill_color: tuple = (0, 0, 0), 
                      back_color: tuple = (255, 255, 255), 
                      border: int = 4, 
+                     qr_style: Optional[Literal["squared", "gapped", "circle", "rounded", "verticalbars", "horizontalbars"]] = "squared",
                      box_size: Union[int, None] = None,
                      icon_path: Union[str, None] = None,
                      use_default_icon: bool = False):
@@ -109,7 +136,14 @@ class QRCodeBase:
         if box_size:
             self._qrcode.box_size = box_size
 
-        qr_image = self._qrcode.make_image(fill_color=fill_color, back_color=back_color)
+        module_drawer = self._get_module_drawer(qr_style)
+
+        qr_image = self._qrcode.make_image(
+            fill_color=fill_color, 
+            back_color=back_color, 
+            module_drawer=module_drawer,
+            image_factory=StyledPilImage
+        )
 
         if use_default_icon:
             self._init_default_icon()
@@ -268,10 +302,10 @@ class QRCodeWifi(QRCodeBase, ValueChecks):
 
 #         - [ frequency ]       dayly, weekly, monthly, yearly
 #         - [ until format ]   <yyyymmdd>T<hhmmss>(Z)
-#         - [ interval ]       number for interval    
+#         - [ interval ]       number for interval
 #         - [ count ]          occurences
-#         - [ byday ]          1 - 31, on which day(s), example: byday = 
-#         - [ bymonth ]        1 - 12           
+#         - [ byday ]          1 - 31, on which day(s), example: byday =
+#         - [ bymonth ]        1 - 12
 #     '''
 #     frequency: QRCodeEventRecuranceFrequency
 #     until: str
@@ -280,10 +314,9 @@ class QRCodeWifi(QRCodeBase, ValueChecks):
 #     bymonth: int
 
 
-
 # class QRCodeEvent(QRCodeBase):
 
-#     def __init__(self, 
+#     def __init__(self,
 #                  name: str,
 #                  description: str,
 #                  location: str,
@@ -299,17 +332,17 @@ class QRCodeWifi(QRCodeBase, ValueChecks):
 #         '''
 #         CLASS:      is the event private or public?
 #         METHOD:     should this event be a request or be published into the calender directly?
-#         DTSTAMP:    system date, when the event has been created, in order to check if event on the client system has to be updated.    
+#         DTSTAMP:    system date, when the event has been created, in order to check if event on the client system has to be updated.
 #         '''
 #         super().__init__()
-        
+
 #         uid = base64.b64encode(f'{name} {location} {start_date} {start_time}'.encode("utf-8"))
 #         today = date.today()
-#         dtstamp = f'{today.year}{today.month}{today.day}' 
+#         dtstamp = f'{today.year}{today.month}{today.day}'
 #         calender_string = ('BEGIN:VCALENDAR' +
 #                             '\nBEGIN:VEVENT' +
 
-#                             f'\nUID:{uid}' + 
+#                             f'\nUID:{uid}' +
 #                             f'\nCLASS:{event_class.name}' +
 #                             f'\nMETHOD:{method.name}' +
 #                             f'\nSUMMARY:{name}' +
@@ -415,27 +448,25 @@ class QRCodeVCard(QRCodeBase):
         self._add_data(vcard_string)
 
 
+if __name__ == '__main__':
 
-# if __name__ == '__main__':
+    # #TEXT
 
-
-# #TEXT
-
-#     qr = QRCodeText('Exsample Test is OK.')
-#     img = qr.create_image()
-#     img.save("QRTypeText.png")
+    qr = QRCodeText("Exsample Test is OK.")
+    img = qr.create_image(qr_style="verticalbars")
+    img.save("QRTypeText.png")
 
 
 # #LINK
 
-#     qr = QRCodeLink(link=r'<a href="tel:123-456-7890">ddd</a>')
-#     img = qr.create_image()
-#     img.save("QRTypeLink.png")
+# qr = QRCodeLink(link=r'<a href="tel:123-456-7890">ddd</a>')
+# img = qr.create_image(qr_style="circle")
+# img.save("QRTypeLink.png")
 
 
 # #GEOLOCATION
 
-#     qr = QRCodeGeoLocation(QRCodeGeoLocationData(latitude='52.251723474830776', 
+#     qr = QRCodeGeoLocation(QRCodeGeoLocationData(latitude='52.251723474830776',
 #                                                  longitude='10.467977442471788'))
 #     img = qr.create_image()
 #     img.save("QRTypeGeoLocation.png")
@@ -457,8 +488,8 @@ class QRCodeVCard(QRCodeBase):
 
 # #VCARD
 
-#     qr = QRCodeVcard(firstname='Alex', 
-#                      lastname='Bork', 
+#     qr = QRCodeVcard(firstname='Alex',
+#                      lastname='Bork',
 #                      phones=[QRCodeVcardPhone(type='Mobile', number='+49 16098085161')],
 #                      urls=[QRCodeVcardUrl(type='Privat', address='http://home.de')],
 #                      emails=[QRCodeVcardEmail(type='Privat', address='alex.bork@outlook.com')],
@@ -484,10 +515,10 @@ class QRCodeVCard(QRCodeBase):
 
 # #CALENDEREVENT
 
-#     qr = QRCodeEvent(name='EventName11', 
-#                              description='EventDescription', 
+#     qr = QRCodeEvent(name='EventName11',
+#                              description='EventDescription',
 #                              location='EventLocation',
-#                              geo_location=QRCodeGeoLocationData(latitude='52.251723474830776', 
+#                              geo_location=QRCodeGeoLocationData(latitude='52.251723474830776',
 #                                                                 longitude='10.467977442471788'),
 #                              start_date='20230422',
 #                              start_time='110000',
@@ -495,5 +526,3 @@ class QRCodeVCard(QRCodeBase):
 #                              end_time='133000')
 #     img = qr.create_image()
 #     img.save("QRTypeCalenderEvent.png")
-
-

@@ -8,3 +8,7 @@ Value validation is also implemented in the class constructor.
 ### 1.0.0
 
 - First Implementation
+
+### 1.1.0
+
+- Styled QR code creation added
