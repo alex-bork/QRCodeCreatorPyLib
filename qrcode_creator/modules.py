@@ -105,7 +105,7 @@ class QRCodeBase:
 
     def _get_module_drawer(self, qr_style):
 
-        if qr_style == "squared":
+        if qr_style == "square":
             return SquareModuleDrawer()
         elif qr_style == "gapped":
             return GappedSquareModuleDrawer()
