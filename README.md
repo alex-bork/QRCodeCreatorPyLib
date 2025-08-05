@@ -16,3 +16,7 @@ Value validation is also implemented in the class constructor.
 ### 1.1.1
 
 - QR style renamed
+
+### 1.2.0
+
+- Module and eye style added

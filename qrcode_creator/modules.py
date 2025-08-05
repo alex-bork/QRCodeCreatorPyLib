@@ -2,7 +2,7 @@ import base64
 from dataclasses import dataclass
 from datetime import date
 import math
-from typing import Literal, Optional, Union
+from typing import Literal, Optional, Tuple, Union
 import PIL
 import qrcode
 from qrcode import constants as qrconst
@@ -14,6 +14,7 @@ from qrcode.image.styles.moduledrawers.pil import (
     VerticalBarsDrawer,
     HorizontalBarsDrawer,
 )
+from qrcode.image.styles.colormasks import SolidFillColorMask
 from qrcode.image.styledpil import StyledPilImage
 from enum import Enum
 import os
@@ -103,31 +104,48 @@ class QRCodeBase:
 
         qr_image.paste(icon, pos)
 
-    def _get_module_drawer(self, qr_style):
+    def _get_module_drawer(self, style):
 
-        if qr_style == "square":
+        if style == "square":
             return SquareModuleDrawer()
-        elif qr_style == "gapped":
+        elif style == "gapped":
             return GappedSquareModuleDrawer()
-        elif qr_style == "circle":
+        elif style == "circle":
             return CircleModuleDrawer()
-        elif qr_style == "rounded":
+        elif style == "rounded":
             return RoundedModuleDrawer()
-        elif qr_style == "verticalbars":
+        elif style == "verticalbars":
             return VerticalBarsDrawer()
-        elif qr_style == "horizontalbars":
+        elif style == "horizontalbars":
             return HorizontalBarsDrawer()
         else:
-            raise ValueError(f"QR stype {qr_style} not supported.")
+            raise ValueError(f"QR style {style} not supported.")
 
-    def create_image(self, 
-                     fill_color: tuple = (0, 0, 0), 
-                     back_color: tuple = (255, 255, 255), 
-                     border: int = 4, 
-                     qr_style: Optional[Literal["squared", "gapped", "circle", "rounded", "verticalbars", "horizontalbars"]] = "squared",
-                     box_size: Union[int, None] = None,
-                     icon_path: Union[str, None] = None,
-                     use_default_icon: bool = False):
+    def create_image(
+        self,
+        fill_color: Tuple[int, int, int] = (0, 0, 0),
+        back_color: Tuple[int, int, int] = (255, 255, 255),
+        border: int = 4,
+        module_style: Literal[
+            "square",
+            "gapped",
+            "circle",
+            "rounded",
+            "verticalbars",
+            "horizontalbars",
+        ] = "square",
+        eye_style: Literal[
+            "square",
+            "gapped",
+            "circle",
+            "rounded",
+            "verticalbars",
+            "horizontalbars",
+        ] = "square",
+        box_size: Optional[int] = None,
+        icon_path: Optional[str] = None,
+        use_default_icon: bool = False,
+    ):
 
         if border < 4:
             raise ValueError('border must not have value lower than 4.')
@@ -136,13 +154,16 @@ class QRCodeBase:
         if box_size:
             self._qrcode.box_size = box_size
 
-        module_drawer = self._get_module_drawer(qr_style)
+        module_drawer = self._get_module_drawer(module_style)
+        eye_drawer = self._get_module_drawer(eye_style)
 
         qr_image = self._qrcode.make_image(
-            fill_color=fill_color, 
-            back_color=back_color, 
             module_drawer=module_drawer,
-            image_factory=StyledPilImage
+            eye_drawer=eye_drawer,
+            image_factory=StyledPilImage,
+            color_mask=SolidFillColorMask(
+                front_color=fill_color, back_color=back_color
+            ),
         )
 
         if use_default_icon:
@@ -448,13 +469,13 @@ class QRCodeVCard(QRCodeBase):
         self._add_data(vcard_string)
 
 
-if __name__ == '__main__':
+# if __name__ == '__main__':
 
-    # #TEXT
+# #TEXT
 
-    qr = QRCodeText("Exsample Test is OK.")
-    img = qr.create_image(qr_style="verticalbars")
-    img.save("QRTypeText.png")
+# qr = QRCodeText("Exsample Test is OK.")
+# img = qr.create_image(module_style="rounded", eye_style="circle", fill_color=(239, 35, 35))
+# img.save("QRTypeText.png")
 
 
 # #LINK
